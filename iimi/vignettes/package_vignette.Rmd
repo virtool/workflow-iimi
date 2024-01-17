@@ -1,0 +1,188 @@
+---
+title: "Introduction to the iimi package"
+author: "Haochen Ning"
+date: 2023-04-29
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Introduction to package}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+
+## Introduction
+
+This vignette aims to give an introduction on how to use the `iimi` package to 
+do plant virus diagnostics and how to visualize the coverage profile for the 
+sample mapping.
+
+First, we will load necessary packages before we start any analysis.
+
+```{r, warning=FALSE, message=FALSE}
+library(iimi)
+
+library(Biostrings)
+```
+
+```{r, echo=FALSE}
+# load("C:/Users/dsain/Desktop/CLEANSED/DataWrangling/RData/truth.rda")
+```
+
+Note that we need sample mapping results to get started creating coverage 
+profiles and feature-extracted data frame. We used Bowtie 2 to map the samples 
+against the official Virtool virus data base. You can choose from Bowtie 2 or 
+minimap2 since we have tried both and they yield similar result. We let both 
+software to report all alignments (`-a` mode for Bowtie 2, `--secondary=yes` for 
+minimap2).
+
+## Converting BAM file(s) into coverage profiles and feature-extracted data frame
+
+First, we convert the BAM file(s) into coverage profiles and feature-extracted 
+data frame.
+
+We will use the coverage profiles to visualize the mapping information. The
+feature-extracted data frame will be used in the model training and testing 
+process.
+
+Note that both training and testing data need to go through the conversion step. 
+In our example, we stored the conversion for both the testing and training 
+datasets in the same object. You can do the conversion separately for your data.
+
+**Note: the example code does not work unless you put in your own path**
+
+1. State the path to the folder of your BAM files. If you already have coverage 
+profiles in RLE format, go to step 2.2.
+
+   ```{r, eval=FALSE, warning=FALSE}
+   path_to_bamfiles <- list.files(
+     path = path/to/your/BAM/files/folder,
+     pattern = "bam$", full.names = TRUE, 
+     include.dirs = TRUE
+   )
+   ```
+
+2. Create a data frame that contains the coverage profiles.
+
+   1. If you are using BAM files, convert them to a coverage profile data frame.
+
+      ```{r, eval=FALSE, warning=FALSE}
+      toy_data <- convert_bam_to_cov(bam_file = path_to_bamfiles)
+
+      # we will get a list of coverage profiles and a data frame
+      cov_info <- toy_data$cov
+
+      df <- toy_data$ML_df
+      ```
+
+   2. If you are using coverage profiles in RLE format, convert them to a coverage 
+   profile data frame.
+
+      ```{r, warning=FALSE}
+      toy_data <- convert_bam_to_cov(covs = example_cov)
+
+      cov_info <- toy_data$cov
+
+      df <- toy_data$ML_df
+      
+      head(df)
+      ```
+
+## Visualization
+
+Next, we can visualize the coverage profile by using the `plot_cov()` function.
+
+* `plot_cov()`: plots the coverage profile of the plant sample and the percentage
+  of A nucleotides and GC content for a sliding window of k-mer with the step as 
+  1. We used the default setting of k = 75.
+
+```{r, fig.width=7, fig.height=5}
+  covs_selected = list()
+  covs_selected$`14A1_1` <- cov_info$`14A1_1`[c("4c559wtw", "2kiu3uzt", "z9hs8khm", "ka4xfvq7")]
+
+  par(mar = c(1,2,1,1))
+  layout(matrix(c(1,1,2,5,5,6,3,3,4,7,7,8), nrow = 6))
+
+  plot_cov(covs = covs_selected)
+```
+
+This gives us a general idea of what the potential viruses are.
+
+* Plot (1) indicates that the virus segment infected the sample
+* Plot (2) indicates that the virus segment did not infect the sample
+* Plot (3) indicates that the peak in the coverage profile could be explained by
+the mappability profile
+* Plot (4) indicates that the peak in the coverage profile could be explained by
+the increase in the A nucleotide percentage
+
+## Model training
+
+Now, we are going to train the model.
+
+Ideally, the number of the samples used to train the model should be bigger than
+100. However, since we are only providing a tutorial on how to use the 
+`train_iimi` function, only one sample is used to train the model. 
+
+First, we need to prepare our training data:
+
+```{r}
+# spliting into 80-20 train and test data set with the 21 plant samples
+train_names<-sample(levels(as.factor(df$sample_id)), length(unique(df$sample_id)) * 0.8)
+
+# trian data
+train_x = df[df$sample_id %in% train_names,]
+
+train_y = c()
+
+for (ii in 1:nrow(train_x)) {
+  train_y = append(train_y,example_diag[train_x$seg_id[ii], train_x$sample_id[ii]])
+}
+```
+
+Then, we plug in the variables into the `train_iimi` function with the default
+XGBoost model:
+
+```{r, message=FALSE, warning=FALSE, results='hide'}
+fit <- train_iimi(train_x = train_x, train_y = train_y)
+```
+
+Now, we have a trained model using the toy data.
+
+## Model testing
+
+To do the detection, use the sample(s) that you wish to detect as the input.
+
+```{r}
+# trian data
+test_x = df[df$sample_id %in% train_names == F,]
+
+test_y = c()
+
+for (ii in 1:nrow(train_x)) {
+  test_y = append(test_y,example_diag[train_x$seg_id[ii], train_x$sample_id[ii]])
+}
+```
+
+After preparing your test sample, you can choose to test the data using our
+provided training model or the model you trained using `train_iimi()`.
+
+If you wish to use your own model:
+
+```{r}
+prediction_customized <- predict_iimi(newdata = test_x, method = "xgb", trained_model = fit)
+```
+
+If you wish to use provided training model:
+
+```{r, message=FALSE, warning=FALSE, results='hide'}
+prediction_default <- predict_iimi(newdata = test_x, method = "xgb")
+```
+
+The detection of your plant sample(s) is finished. The following shows the 
+prediction for the test sample(s) at the virus level. `TRUE` if virus infected 
+the sample, `FALSE` if virus did not infect the sample.
+
+```{r}
+head(prediction_default)
+```
+
+**Note: if you would like to see the prediction in the virus segment level, add the parameter `report_result_level = 1`.**
