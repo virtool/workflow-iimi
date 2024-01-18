@@ -1,0 +1,51 @@
+name: ci
+
+on:
+  pull_request:
+    branches:
+      - "*"
+  push:
+    branches:
+      - "main"
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  commitlint:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Lint
+        uses: wagoid/commitlint-github-action@v5
+  test:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Test
+        run: docker build --target test .
+  release:
+    runs-on: ubuntu-22.04
+    needs: [commitlint, test]
+    if: github.event_name == 'push'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install semantic-release
+        run: npm i semantic-release@v23.0.0 conventional-changelog-conventionalcommits@7.0.2
+      - name: Release
+        id: release
+        env:
+          GITHUB_USERNAME: ${{ secrets.GH_USERNAME }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          VERSION=$(npx semantic-release --dry-run | grep 'Published version' | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+          echo "::set-output name=version::$VERSION"
+      - name: Publish
+        run: echo ${{ steps.release.outputs.version }}
