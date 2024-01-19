@@ -3,17 +3,15 @@ from operator import itemgetter
 from pathlib import Path
 
 from pyfixtures import fixture
-from virtool_workflow import step, RunSubprocess
+from virtool_workflow import RunSubprocess, step
 from virtool_workflow.data.analyses import WFAnalysis
-from virtool_workflow.data.indexes import WFIndex
 from virtool_workflow.data.ml import WFMLModelRelease
 from virtool_workflow.data.samples import WFSample
 
 from utils import (
-    write_iimi_nucleotide_info,
-    untar,
     load_and_format_prediction_results,
     write_all_otu_fasta,
+    write_iimi_nucleotide_info,
 )
 
 
@@ -41,28 +39,35 @@ async def output_path(work_path: Path) -> Path:
 @step(name="Build all-OTU index")
 async def build_all_otu_index(
     all_otu_index_path: Path,
-    index: WFIndex,
+    ml: WFMLModelRelease,
     logger,
     nucleotide_info_path: Path,
     proc: int,
     run_subprocess: RunSubprocess,
 ):
     """Map reads against all OTU sequences in the configured index."""
-
     all_otu_fasta_path = all_otu_index_path.parent / "all.fa"
 
-    await asyncio.to_thread(
-        write_iimi_nucleotide_info,
-        index.path / "reference.json.gz",
-        nucleotide_info_path,
-        logger,
-    )
+    try:
+        await asyncio.to_thread(
+            write_iimi_nucleotide_info,
+            ml.path / "reference.json.gz",
+            nucleotide_info_path,
+            logger,
+        )
+    except Exception as err:
+        logger.error("failed to write nucleotide info", err=err)
+        raise
+
+    logger.info("writing all otu fasta")
 
     await asyncio.to_thread(
         write_all_otu_fasta,
-        index.path / "reference.json.gz",
+        ml.path / "reference.json.gz",
         all_otu_fasta_path,
     )
+
+    logger.info("creating bowtie2 mapping index")
 
     await run_subprocess(
         [
@@ -72,7 +77,7 @@ async def build_all_otu_index(
             "-f",
             all_otu_fasta_path,
             all_otu_index_path,
-        ]
+        ],
     )
 
 
@@ -109,15 +114,13 @@ async def map_all_otus(
             sam_path,
             "-o",
             work_path / "mapped.bam",
-        ]
+        ],
     )
 
 
 @step
 async def predict(
     analysis: WFAnalysis,
-    bam_path: Path,
-    index: WFIndex,
     logger,
     ml: WFMLModelRelease,
     nucleotide_info_path: Path,
@@ -130,22 +133,15 @@ async def predict(
     async def handler(line: bytes):
         logger.info("stdout", line=line.decode())
 
-    assert ml.file_path.exists()
-    assert ml.file_path.name == "model.tar.gz"
-
-    await asyncio.to_thread(untar, ml.file_path, work_path)
-
-    logger.info(
-        "Running R script", model_contents=list((work_path / "model").iterdir())
-    )
+    logger.info("running rscript")
 
     await run_subprocess(
         [
             "Rscript",
             "./run.r",
-            bam_path,
-            work_path / "model" / "mappability_profile.rds",
-            work_path / "model" / "trained_rf.rds",
+            work_path / "mapped.bam",
+            ml.path / "mappability_profile.rds",
+            ml.path / "trained_rf.rds",
             nucleotide_info_path,
             output_path,
             "--verbose",
@@ -155,10 +151,10 @@ async def predict(
 
     result = await asyncio.to_thread(
         load_and_format_prediction_results,
-        index.path / "reference.json.gz",
+        ml.path / "reference.json.gz",
         output_path,
     )
 
     await analysis.upload_result(
-        {"hits": sorted([h.dict() for h in result], key=itemgetter("name"))}
+        {"hits": sorted([h.dict() for h in result], key=itemgetter("name"))},
     )

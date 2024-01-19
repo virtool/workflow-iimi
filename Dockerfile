@@ -50,7 +50,7 @@ RUN poetry install --without dev --no-root
 COPY --from=rbuild /usr/local/lib/R/site-library /usr/local/lib/R/site-library
 COPY run.r utils.py workflow.py ./
 RUN poetry install
-ENTRYPOINT ["poetry", "run", "workflow", "run"]
+ENTRYPOINT ["poetry", "run"]
 
 FROM base as test
 RUN poetry install
