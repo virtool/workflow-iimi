@@ -57,4 +57,4 @@ RUN poetry install
 COPY conftest.py ./
 COPY tests ./tests
 COPY example ./example
-RUN poetry run pytest tests/test_workflow.py
+ENTRYPOINT ["poetry", "run"]

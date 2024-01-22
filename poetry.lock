@@ -1282,13 +1282,13 @@ structlog = ">=23.1.0,<24.0.0"
 
 [[package]]
 name = "virtool-workflow"
-version = "6.0.0a9"
+version = "6.0.0a11"
 description = "A framework for developing bioinformatics workflows for Virtool."
 optional = false
 python-versions = ">=3.10,<3.11"
 files = [
-    {file = "virtool_workflow-6.0.0a9-py3-none-any.whl", hash = "sha256:796f4ab2971abbf28828b4c5013603d966ca402d6c59675e7b5c6261e29555a1"},
-    {file = "virtool_workflow-6.0.0a9.tar.gz", hash = "sha256:6c61cb95b18fee28cb6b63b65010197b458b053b778de73538b107a6f30ba9a8"},
+    {file = "virtool_workflow-6.0.0a11-py3-none-any.whl", hash = "sha256:dfa1e325d2d59f6c85379b5155787392f237ee02f389a34468a9934e99ab5bb5"},
+    {file = "virtool_workflow-6.0.0a11.tar.gz", hash = "sha256:c5cf11136bebcfd4cf308994f997c17ff7301b234473198cb8b3e1901fe6c40f"},
 ]
 
 [package.dependencies]
