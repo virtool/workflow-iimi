@@ -15,6 +15,11 @@ def example_path():
 
 
 @pytest.fixture
+def virtool_workflow_example_path(example_path: Path):
+    return example_path
+
+
+@pytest.fixture
 def logger():
     return get_logger("workflow")
 

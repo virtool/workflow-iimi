@@ -1,8 +1,10 @@
 import json
+import os
 import shutil
 from pathlib import Path
 
 import pytest
+from structlog import get_logger
 from syrupy import SnapshotAssertion
 from virtool_core.models.analysis import AnalysisSample
 from virtool_core.models.enums import LibraryType
@@ -16,6 +18,7 @@ from virtool_workflow.data.indexes import WFIndex
 from virtool_workflow.data.ml import WFMLModelRelease
 from virtool_workflow.data.samples import WFSample
 from virtool_workflow.pytest_plugin.data import Data
+from virtool_workflow.utils import untar
 
 from workflow import build_all_otu_index, map_all_otus, predict
 
@@ -68,6 +71,13 @@ def ml(data: Data, example_path: Path, work_path: Path) -> WFMLModelRelease:
     obj = WFMLModelRelease(id=data.ml.id, name=data.ml.name, path=path)
 
     shutil.copyfile(example_path / "model.tar.gz", obj.file_path)
+    untar(obj.file_path, path)
+
+    for filepath in (path / "model").iterdir():
+        os.rename(filepath, path / filepath.name)
+
+    logger = get_logger("ml")
+    logger.info("Extracted ML model", contents=list(path.iterdir()))
 
     return obj
 
@@ -146,8 +156,6 @@ async def test_workflow(
 
     await predict(
         analysis,
-        work_path / "mapped.bam",
-        index,
         logger,
         ml,
         nucleotide_info_path,
@@ -181,8 +189,6 @@ async def test_predict(
 
     await predict(
         analysis,
-        bam_path,
-        index,
         logger,
         ml,
         nucleotide_info_path,
