@@ -33,6 +33,7 @@ jobs:
           context: .
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          load: true
           target: test
       - name: Test
         run: docker run --rm -t ${{ steps.build.outputs.imageid }} pytest
