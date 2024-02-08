@@ -48,7 +48,7 @@ ENV PATH="/root/.local/bin:${PATH}"
 COPY poetry.lock pyproject.toml ./
 RUN poetry install --without dev --no-root
 COPY --from=rbuild /usr/local/lib/R/site-library /usr/local/lib/R/site-library
-COPY run.r utils.py workflow.py ./
+COPY run.r utils.py workflow.py VERSION* ./
 RUN poetry install
 ENTRYPOINT ["poetry", "run"]
 
