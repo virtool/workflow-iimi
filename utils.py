@@ -183,7 +183,8 @@ def load_virus_annotations(
 
 
 def load_and_format_prediction_results(
-    reference_json_path: Path, output_path: Path,
+    reference_json_path: Path,
+    output_path: Path,
 ) -> list[PredictionHit]:
     """Load IIMI results into a list of ``PredictionHit`` objects.
 
@@ -352,5 +353,3 @@ def write_iimi_nucleotide_info(reference_json_path: Path, output_path: Path, log
 def untar(path: Path, target_path: Path):
     with tarfile.open(path, "r:gz") as tar:
         tar.extractall(target_path)
-
-

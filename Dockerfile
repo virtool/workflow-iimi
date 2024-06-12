@@ -26,7 +26,7 @@ RUN ./configure --prefix /build/samtools
 RUN make
 RUN make install
 
-FROM python:3.10-bookworm as rbuild
+FROM python:3.12.3-bookworm as rbuild
 WORKDIR /build
 RUN apt-get update && apt-get install -y libdeflate0 r-base r-cran-littler
 RUN R -e "install.packages('BiocManager')"
@@ -36,7 +36,7 @@ RUN R -e "install.packages(c('data.table', 'dplyr', 'mltools', 'randomForest', '
 COPY ./iimi ./iimi
 RUN R -e "install.packages('iimi', repos = NULL, type = 'source')"
 
-FROM python:3.10-bookworm as base
+FROM python:3.12.3-bookworm as base
 WORKDIR /app
 RUN apt-get update && apt-get install -y libdeflate0 r-base r-cran-littler
 COPY --from=prep /build/bowtie2/* /usr/local/bin/

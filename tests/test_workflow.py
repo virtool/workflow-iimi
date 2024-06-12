@@ -23,7 +23,7 @@ from virtool_workflow.utils import untar
 from workflow import build_all_otu_index, map_all_otus, predict
 
 
-@pytest.fixture
+@pytest.fixture()
 def analysis(data: Data, mocker) -> WFAnalysis:
     data.analysis.ready = False
 
@@ -40,7 +40,7 @@ def analysis(data: Data, mocker) -> WFAnalysis:
     return analysis
 
 
-@pytest.fixture
+@pytest.fixture()
 def index(data: Data, example_path: Path, work_path: Path) -> WFIndex:
     index_path = work_path / "indexes" / data.index.id
 
@@ -63,7 +63,7 @@ def index(data: Data, example_path: Path, work_path: Path) -> WFIndex:
     )
 
 
-@pytest.fixture
+@pytest.fixture()
 def ml(data: Data, example_path: Path, work_path: Path) -> WFMLModelRelease:
     path = work_path / "ml" / str(data.ml.id) / str(data.ml.model.id)
     path.mkdir(parents=True)
@@ -82,7 +82,7 @@ def ml(data: Data, example_path: Path, work_path: Path) -> WFMLModelRelease:
     return obj
 
 
-@pytest.fixture
+@pytest.fixture()
 def sample(data: Data, example_path: Path, work_path: Path) -> WFSample:
     sample_path = work_path / "samples" / data.sample.id
     sample_path.mkdir(parents=True)
@@ -102,7 +102,7 @@ def sample(data: Data, example_path: Path, work_path: Path) -> WFSample:
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_workflow(
     analysis: WFAnalysis,
     example_path: Path,
@@ -116,7 +116,6 @@ async def test_workflow(
     work_path: Path,
 ):
     """Make sure the workflow runs without error."""
-
     all_otu_index_path = work_path / "all_otu_index"
     all_otu_index_path.mkdir()
 
@@ -167,7 +166,7 @@ async def test_workflow(
     assert analysis.upload_result.call_args[0] == snapshot
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_predict(
     analysis: WFAnalysis,
     example_path: Path,
