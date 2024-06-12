@@ -1,26 +1,28 @@
 [tool.poetry]
 name = "workflow-iimi"
-version = "0.1.0"
+version = "0.0.0"
 description = ""
-authors = ["Ian Boyes"]
+authors = ["Ian Boyes <igboyes@gmail.com>"]
 license = "MIT"
 
 [tool.poetry.dependencies]
-python = "~3.10"
-virtool-workflow = {version="^6.0.0a7", allow-prereleases=true}
-biopython = "^1.81"
-pydantic-factories = "^1.17.3"
+python = "~3.12"
+virtool-workflow = "^7.1.0"
+biopython = "^1.83"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.2"
 pytest-asyncio = "^0.23.2"
-pytest-aiohttp = "^1.0.5"
-syrupy = "^4.6.0"
 pytest-mock = "^3.12.0"
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+ruff = "^0.4.8"
+syrupy = "^4.6.0"
 
 [tool.pytest.ini_options]
-markers = ["asyncio_mode: auto"]
+asyncio_mode = "auto"
+
+[tool.ruff.lint]
+select = ["ALL"]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

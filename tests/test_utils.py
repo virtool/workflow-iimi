@@ -3,14 +3,18 @@ from pathlib import Path
 
 from syrupy import SnapshotAssertion
 
-from utils import write_iimi_nucleotide_info, load_and_format_prediction_results
+from utils import load_and_format_prediction_results, write_iimi_nucleotide_info
 
 
 def test_write_iimi_nucleotide_info(
-    example_path: Path, logger, snapshot: SnapshotAssertion, work_path: Path
+    example_path: Path,
+    logger,
+    snapshot: SnapshotAssertion,
+    work_path: Path,
 ):
     shutil.copyfile(
-        example_path / "index" / "reference.json.gz", work_path / "reference.json.gz"
+        example_path / "index" / "reference.json.gz",
+        work_path / "reference.json.gz",
     )
 
     output_path = work_path / "nucleotide_info.csv"
@@ -37,6 +41,7 @@ def test_load_prediction_results(snapshot: SnapshotAssertion, work_path: Path):
     assert [
         obj.dict()
         for obj in load_and_format_prediction_results(
-            work_path / "reference.json.gz", output_path
+            work_path / "reference.json.gz",
+            output_path,
         )
     ] == snapshot
