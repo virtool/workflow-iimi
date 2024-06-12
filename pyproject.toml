@@ -2,14 +2,13 @@
 name = "workflow-iimi"
 version = "0.0.0"
 description = ""
-authors = ["Ian Boyes"]
+authors = ["Ian Boyes <igboyes@gmail.com>"]
 license = "MIT"
 
 [tool.poetry.dependencies]
 python = "~3.12"
 virtool-workflow = "^7.1.0"
-biopython = "^1.81"
-pydantic-factories = "^1.17.3"
+biopython = "^1.83"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.2"
@@ -25,5 +24,5 @@ asyncio_mode = "auto"
 select = ["ALL"]
 
 [build-system]
-requires = ["poetry-core"]
+requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
