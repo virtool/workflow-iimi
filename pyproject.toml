@@ -7,8 +7,8 @@ license = "MIT"
 
 [tool.poetry.dependencies]
 python = "~3.12"
+biopython = "^1.84"
 virtool-workflow = "^7.1.0"
-biopython = "^1.83"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.2"
