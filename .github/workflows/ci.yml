@@ -16,6 +16,8 @@ jobs:
   release:
     runs-on: ubuntu-22.04
     if: github.event_name == 'push'
+    outputs:
+      git-tag: ${{ steps.release.outputs.git-tag }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
