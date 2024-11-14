@@ -1,0 +1,23 @@
+{
+    "branches": ["main"],
+    "plugins": [
+        [
+            "@semantic-release/commit-analyzer",
+            {
+                "preset": "conventionalcommits"
+            }
+        ],
+        "@semantic-release/release-notes-generator",
+        {
+            "preset": "conventionalcommits"
+        },
+        [
+            "@semantic-release/github",
+            {
+                "failComment": false
+            }
+        ]
+    ],
+    "repositoryUrl": "https://github.com/virtool/workflow-iimi.git",
+    "tagFormat": "${version}"
+}
