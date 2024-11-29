@@ -1,4 +1,4 @@
-FROM debian:buster as prep
+FROM debian:buster AS prep
 WORKDIR /build
 RUN apt-get update && apt-get install -y cmake gcc g++ make unzip wget zlib1g-dev
 RUN wget https://zlib.net/pigz/pigz-2.8.tar.gz
@@ -26,17 +26,19 @@ RUN ./configure --prefix /build/samtools
 RUN make
 RUN make install
 
-FROM python:3.12.3-bookworm as rbuild
+FROM python:3.12.3-bookworm AS rbuild
 WORKDIR /build
 RUN apt-get update && apt-get install -y libdeflate0 r-base r-cran-littler
 RUN R -e "install.packages('BiocManager')"
 RUN R -e "BiocManager::install()"
 RUN R -e "BiocManager::install(c('Biostrings', 'Rsamtools', 'GenomicAlignments'))"
-RUN R -e "install.packages(c('data.table', 'dplyr', 'mltools', 'randomForest', 'xgboost', 'knitr'))"
-COPY ./iimi ./iimi
+RUN R -e "install.packages(c('data.table', 'dplyr', 'mltools', 'randomForest', 'xgboost', 'knitr', 'devtools', 'remotes'))"
+RUN git clone https://github.com/virtool/iimi.git
 RUN R -e "install.packages('iimi', repos = NULL, type = 'source')"
+# COPY ./iimi ./iimi
+# RUN R -e "install.packages('iimi', repos = NULL, type = 'source')"
 
-FROM python:3.12.3-bookworm as base
+FROM python:3.12.3-bookworm AS base
 WORKDIR /app
 RUN apt-get update && apt-get install -y libdeflate0 r-base r-cran-littler
 COPY --from=prep /build/bowtie2/* /usr/local/bin/
@@ -52,7 +54,7 @@ COPY run.r utils.py workflow.py VERSION* ./
 RUN poetry install
 ENTRYPOINT ["poetry", "run"]
 
-FROM base as test
+FROM base AS test
 RUN poetry install
 COPY conftest.py ./
 COPY tests ./tests
