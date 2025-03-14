@@ -32,9 +32,8 @@ RUN apt-get update && apt-get install -y libdeflate0 r-base r-cran-littler
 RUN R -e "install.packages('BiocManager')"
 RUN R -e "BiocManager::install()"
 RUN R -e "BiocManager::install(c('Biostrings', 'Rsamtools', 'GenomicAlignments'))"
-RUN R -e "install.packages(c('data.table', 'dplyr', 'mltools', 'randomForest', 'xgboost', 'knitr'))"
-COPY ./iimi ./iimi
-RUN R -e "install.packages('iimi', repos = NULL, type = 'source')"
+RUN R -e "install.packages(c('data.table', 'dplyr', 'mltools', 'randomForest', 'xgboost', 'knitr', 'remotes', 'MTPS', 'R.utils'))"
+RUN R -e "remotes::install_github('virtool/iimi')"
 
 FROM python:3.12.3-bookworm as base
 WORKDIR /app

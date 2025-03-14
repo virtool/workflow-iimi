@@ -217,7 +217,7 @@ def load_and_format_prediction_results(
 
         next(reader)
 
-        for prediction, sequence_id, isolate_id, otu_id, _ in reader:
+        for _, otu_id, isolate_id, sequence_id, prediction, probability in reader:
             annotation = sequence_annotations.pop(sequence_id)
 
             sequence_prediction_results[otu_id][isolate_id].append(
@@ -240,7 +240,7 @@ def load_and_format_prediction_results(
         reader = csv.reader(f, delimiter=",")
         next(reader)
 
-        for _, otu_id, prediction in reader:
+        for _, otu_id, _, isolate_id, prediction in reader:
             prediction = PredictionHit(
                 id=otu_id,
                 abbreviation=otu_annotations[otu_id]["abbreviation"],
