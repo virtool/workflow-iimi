@@ -140,7 +140,7 @@ async def predict(
             "Rscript",
             "./run.r",
             work_path / "mapped.bam",
-            ml.path / "mappability_profile.rds",
+            ml.path / "unreliable_regions.rds",
             ml.path / "trained_rf.rds",
             nucleotide_info_path,
             output_path,
