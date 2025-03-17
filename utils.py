@@ -24,6 +24,7 @@ class PredictionHitSequence(BaseModel):
     id: str
     coverage: PredictionHitSequenceCoverage
     length: int
+    probability: float
     result: bool
     untrustworthy_ranges: list[tuple[int, int]]
 
@@ -227,6 +228,7 @@ def load_and_format_prediction_results(
                     coverage=coverage.pop(sequence_id),
                     definition=annotation["definition"],
                     length=annotation["length"],
+                    probability=probability,
                     result=prediction == "TRUE",
                     segment=annotation["segment"],
                     sequence_id=sequence_id,
