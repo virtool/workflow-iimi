@@ -33,7 +33,7 @@ RUN R -e "install.packages('BiocManager')"
 RUN R -e "BiocManager::install()"
 RUN R -e "BiocManager::install(c('Biostrings', 'Rsamtools', 'GenomicAlignments'))"
 RUN R -e "install.packages(c('data.table', 'dplyr', 'mltools', 'randomForest', 'xgboost', 'knitr', 'remotes', 'MTPS', 'R.utils'))"
-RUN R -e "remotes::install_github('virtool/iimi')"
+RUN R -e "remotes::install_github('virtool/iimi', ref='1bfac4d429a72e01a6899a288cb6d6a511fb303c')"
 
 FROM python:3.12.3-bookworm as base
 WORKDIR /app
