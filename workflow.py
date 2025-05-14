@@ -24,11 +24,6 @@ async def all_otu_index_path(work_path: Path):
 
 
 @fixture
-async def nucleotide_info_path(work_path: Path) -> Path:
-    return work_path / "nucleotide_info.csv"
-
-
-@fixture
 async def output_path(work_path: Path) -> Path:
     path = work_path / "output"
     await asyncio.to_thread(path.mkdir)
@@ -41,31 +36,10 @@ async def build_all_otu_index(
     all_otu_index_path: Path,
     ml: WFMLModelRelease,
     logger,
-    nucleotide_info_path: Path,
     proc: int,
     run_subprocess: RunSubprocess,
 ):
     """Map reads against all OTU sequences in the configured index."""
-    all_otu_fasta_path = all_otu_index_path.parent / "all.fa"
-
-    try:
-        await asyncio.to_thread(
-            write_iimi_nucleotide_info,
-            ml.path / "reference.json.gz",
-            nucleotide_info_path,
-            logger,
-        )
-    except Exception as err:
-        logger.error("failed to write nucleotide info", err=err)
-        raise
-
-    logger.info("writing all otu fasta")
-
-    await asyncio.to_thread(
-        write_all_otu_fasta,
-        ml.path / "reference.json.gz",
-        all_otu_fasta_path,
-    )
 
     logger.info("creating bowtie2 mapping index")
 
@@ -75,7 +49,7 @@ async def build_all_otu_index(
             "--threads",
             proc,
             "-f",
-            all_otu_fasta_path,
+            ml.path / "reps.fa",
             all_otu_index_path,
         ],
     )
@@ -123,7 +97,6 @@ async def predict(
     analysis: WFAnalysis,
     logger,
     ml: WFMLModelRelease,
-    nucleotide_info_path: Path,
     run_subprocess: RunSubprocess,
     output_path: Path,
     work_path: Path,
@@ -135,14 +108,25 @@ async def predict(
 
     logger.info("running rscript")
 
+    print( [
+            "Rscript",
+            "./run.r",
+            work_path / "mapped.bam",
+            ml.path / "unreliable_regions.csv",
+            ml.path / "trained_xgb.rds",
+            ml.path / "sequence_info.csv",
+            output_path,
+            "--verbose",
+        ])
+
     await run_subprocess(
         [
             "Rscript",
             "./run.r",
             work_path / "mapped.bam",
-            ml.path / "unreliable_regions.rds",
-            ml.path / "trained_rf.rds",
-            nucleotide_info_path,
+            ml.path / "unreliable_regions.csv",
+            ml.path / "trained_xgb.rds",
+            ml.path / "sequence_info.csv",
             output_path,
             "--verbose",
         ],

@@ -205,13 +205,29 @@ def load_and_format_prediction_results(
     coverage = load_coverage(output_path / "coverage.csv")
     untrustworthy_ranges = load_untrustworthy_ranges(output_path / "untrustworthy.csv")
 
+    sequence_ids_by_reps = defaultdict(set)
+
+    with open("reps_by_sequence.csv") as f:
+        reader = csv.reader(f, delimiter=",")
+        next(reader)
+
+        for row in reader:
+            sequence_id, rep_id = row
+            sequence_ids_by_reps[rep_id].add(sequence_id)
+
     (
         otu_annotations,
         isolate_annotations,
         sequence_annotations,
     ) = load_virus_annotations(reference_json_path)
 
-    sequence_prediction_results = defaultdict(lambda: defaultdict(list))
+    with open(reference_json_path) as f:
+        reference = json.load(f)
+
+    for otu in reference["otus"]:
+        for isolate in otu["isolates"]:
+            for sequence in isolate["sequences"]:
+
 
     with open(output_path / "prediction_sequence.csv") as f:
         reader = csv.reader(f, delimiter=",")
@@ -257,6 +273,8 @@ def load_and_format_prediction_results(
                     sequences=sequence_prediction_results[otu_id][isolate_id],
                     source_name=isolate_annotations[isolate_id]["source_name"],
                     source_type=isolate_annotations[isolate_id]["source_type"],
+
+
                 )
                 for isolate_id in sequence_prediction_results[otu_id]
             ]
