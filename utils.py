@@ -9,45 +9,54 @@ from pydantic import BaseModel
 from virtool_workflow.analysis.fastqc import NucleotidePoint
 
 
-class PredictionHitSequenceCoverage(BaseModel):
+
+
+
+class PredictionCoverage(BaseModel):
     """The RLE coverage data for a sequence."""
 
     lengths: list[int]
     values: list[int]
 
+class PredictionRaw(BaseModel):
+    """A sequence-level prediction result.
 
-class PredictionHitSequence(BaseModel):
-    """A sequence that was hit during map and either accepted or rejected as being present
-    by IIMI.
+    This is a simplified version of the ``Prediction`` class in the
+    ``virtool_workflow.analysis.iimi`` module.
     """
 
     id: str
-    coverage: PredictionHitSequenceCoverage
-    length: int
-    probability: float
+    coverage: PredictionCoverage
     result: bool
+    probability: float
     untrustworthy_ranges: list[tuple[int, int]]
 
+class PredictionSequence(PredictionRaw):
+    """A sequence that was hit during map and either accepted or rejected as being present
+    by IIMI.
+    """
+    length: int
 
-class PredictionHitIsolate(BaseModel):
+
+class PredictionIsolate(BaseModel):
     """A virus isolate under which member sequences are organized. Isolates are nested
     below viruses.
     """
 
     id: str
-    sequences: list[PredictionHitSequence]
+    sequences: list[PredictionSequence]
     source_name: str
     source_type: str
 
 
-class PredictionHit(BaseModel):
+class PredictionOTU(BaseModel):
     """A virus that was hit during mapping and either accepted or rejected by IIMI as being
     present.
     """
 
     id: str
     abbreviation: str
-    isolates: list[PredictionHitIsolate]
+    isolates: list[PredictionIsolate]
     name: str
     result: bool
 
@@ -84,7 +93,7 @@ def calculate_nucleotide_composition(sequence: str) -> NucleotidePoint:
     return NucleotidePoint(g=g, a=a, t=t, c=c)
 
 
-def load_coverage(path: Path) -> dict[str, PredictionHitSequenceCoverage]:
+def load_coverage(path: Path) -> dict[str, PredictionCoverage]:
     """Load IIMI coverage data from the given path.
 
     Coverage data is stored as a dictionary of sequence IDs to a
@@ -101,7 +110,7 @@ def load_coverage(path: Path) -> dict[str, PredictionHitSequenceCoverage]:
         next(reader)
 
         for sequence_id, lengths, values in reader:
-            coverage[sequence_id] = PredictionHitSequenceCoverage(
+            coverage[sequence_id] = PredictionCoverage(
                 lengths=[int(l) for l in lengths.split(",")],
                 values=[int(v) for v in values.split(",")],
             )
@@ -140,53 +149,11 @@ def load_untrustworthy_ranges(path: Path) -> dict[str, list[tuple[int, int]]]:
     return untrustworthy_ranges
 
 
-def load_virus_annotations(
-    path: Path,
-) -> tuple[dict[str, dict], dict[str, dict], dict[str, dict]]:
-    """Load the virus annotations from the given path.
-
-    :param path: the path to the virus annotations
-    :type path: str
-
-    :return: a dictionary of virus annotations
-    :rtype: dict
-
-    """
-    otu_annotations = {}
-    isolate_annotations = {}
-    sequence_annotations = {}
-
-    with gzip.open(path, "rt") as f:
-        data = json.load(f)
-
-        for otu in data["otus"]:
-            otu_annotations[otu["_id"]] = {
-                "abbreviation": otu["abbreviation"],
-                "name": otu["name"],
-                "schema": otu["schema"],
-            }
-
-            for isolate in otu["isolates"]:
-                isolate_annotations[isolate["id"]] = {
-                    "source_name": isolate["source_name"],
-                    "source_type": isolate["source_type"],
-                }
-
-                for sequence in isolate["sequences"]:
-                    sequence_annotations[sequence["_id"]] = {
-                        "accession": sequence["accession"],
-                        "definition": sequence["definition"],
-                        "length": len(sequence["sequence"]),
-                        "segment": sequence.get("segment"),
-                    }
-
-        return otu_annotations, isolate_annotations, sequence_annotations
-
-
 def load_and_format_prediction_results(
     reference_json_path: Path,
+    reps_by_sequence_path: Path,
     output_path: Path,
-) -> list[PredictionHit]:
+) -> list[PredictionOTU]:
     """Load IIMI results into a list of ``PredictionHit`` objects.
 
     Results are gathered from the current working directory in the files:
@@ -198,8 +165,9 @@ def load_and_format_prediction_results(
     The results are annotated with virus annotation data collected from the provided
     ``reference.json.gz`` file.
 
-    :param reference_json_path:
-    :param output_path:
+    :param reference_json_path: the path to the reference.json.gz file
+    :param reps_by_sequence_path: the path to the reps_by_sequence.csv file
+    :param output_path: the path to the output directory
     :return: a list hits for each virus
     """
     coverage = load_coverage(output_path / "coverage.csv")
@@ -207,7 +175,7 @@ def load_and_format_prediction_results(
 
     sequence_ids_by_reps = defaultdict(set)
 
-    with open("reps_by_sequence.csv") as f:
+    with open(reps_by_sequence_path) as f:
         reader = csv.reader(f, delimiter=",")
         next(reader)
 
@@ -215,71 +183,93 @@ def load_and_format_prediction_results(
             sequence_id, rep_id = row
             sequence_ids_by_reps[rep_id].add(sequence_id)
 
-    (
-        otu_annotations,
-        isolate_annotations,
-        sequence_annotations,
-    ) = load_virus_annotations(reference_json_path)
-
-    with open(reference_json_path) as f:
-        reference = json.load(f)
-
-    for otu in reference["otus"]:
-        for isolate in otu["isolates"]:
-            for sequence in isolate["sequences"]:
-
+    predictions_by_seq_id: dict[str, PredictionRaw] = {}
 
     with open(output_path / "prediction_sequence.csv") as f:
         reader = csv.reader(f, delimiter=",")
-
         next(reader)
 
-        for _, otu_id, isolate_id, sequence_id, prediction, probability in reader:
-            annotation = sequence_annotations.pop(sequence_id)
-
-            sequence_prediction_results[otu_id][isolate_id].append(
-                PredictionHitSequence(
-                    id=sequence_id,
-                    accession=annotation["accession"],
-                    coverage=coverage.pop(sequence_id),
-                    definition=annotation["definition"],
-                    length=annotation["length"],
-                    probability=probability,
-                    result=prediction == "TRUE",
-                    segment=annotation["segment"],
-                    sequence_id=sequence_id,
-                    untrustworthy_ranges=untrustworthy_ranges.pop(sequence_id, []),
-                ),
-            )
-
-    result = []
-
-    with open(output_path / "prediction_virus.csv") as f:
-        reader = csv.reader(f, delimiter=",")
-        next(reader)
-
-        for _, otu_id, _, isolate_id, prediction in reader:
-            prediction = PredictionHit(
-                id=otu_id,
-                abbreviation=otu_annotations[otu_id]["abbreviation"],
-                isolates=[],
-                name=otu_annotations[otu_id]["name"],
+        for _, otu_id, isolate_id, rep_sequence_id, prediction, probability in reader:
+            prediction_raw = PredictionRaw(
+                id=rep_sequence_id,
+                coverage=coverage[rep_sequence_id],
+                probability=float(probability),
                 result=prediction == "TRUE",
+                untrustworthy_ranges=untrustworthy_ranges.pop(rep_sequence_id, []),
             )
 
-            prediction.isolates = [
-                PredictionHitIsolate(
-                    id=isolate_id,
-                    sequences=sequence_prediction_results[otu_id][isolate_id],
-                    source_name=isolate_annotations[isolate_id]["source_name"],
-                    source_type=isolate_annotations[isolate_id]["source_type"],
+            for sequence_id in sequence_ids_by_reps[rep_sequence_id]:
+                predictions_by_seq_id[sequence_id] = prediction_raw
 
+    result: list[PredictionOTU] = []
 
+    with gzip.open(reference_json_path) as f:
+        reference = json.load(f)
+
+    for otu in reference["otus"]:
+        otu_id = otu["_id"]
+
+        prediction_otu = PredictionOTU(
+            id=otu_id,
+            abbreviation=otu["abbreviation"],
+            isolates=[],
+            name=otu["name"],
+            result=False,
+        )
+
+        for isolate in otu["isolates"]:
+            isolate_id = isolate["id"]
+
+            prediction_isolate = PredictionIsolate(
+                id=isolate_id,
+                sequences=[                ],
+                source_name=isolate["source_name"],
+                source_type=isolate["source_type"],
+            )
+
+            had_prediction = False
+
+            for sequence in isolate["sequences"]:
+                prediction = predictions_by_seq_id.get(sequence["_id"])
+
+                if prediction is None:
+                    prediction = PredictionRaw(
+                        id=sequence["_id"],
+                        coverage=PredictionCoverage(
+                            lengths=[len(sequence["sequence"])],
+                            values=[0],
+                        ),
+                        probability=0.0,
+                        result=False,
+                        untrustworthy_ranges=[],
+                    )
+                else:
+                    had_prediction = True
+
+                prediction_isolate.sequences.append(
+                    PredictionSequence(
+                        id=prediction.id,
+                        coverage=prediction.coverage,
+                        length=len(sequence["sequence"]),
+                        probability=prediction.probability,
+                        result=prediction.result,
+                        untrustworthy_ranges=prediction.untrustworthy_ranges
+                    )
                 )
-                for isolate_id in sequence_prediction_results[otu_id]
-            ]
 
-            result.append(prediction)
+            if had_prediction:
+                prediction_otu.isolates.append(prediction_isolate)
+
+        if not prediction_otu.isolates:
+            continue
+
+        prediction_otu.result = any(
+            sequence.result
+            for isolate in prediction_otu.isolates
+            for sequence in isolate.sequences
+        )
+
+        result.append(prediction_otu)
 
     return result
 
