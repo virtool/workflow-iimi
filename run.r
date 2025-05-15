@@ -12,12 +12,12 @@ args <- commandArgs(trailingOnly=TRUE)
 bam_path <- args[1]
 unreliable_regions_path <- args[2]
 model_path <- args[3]
-nucleotide_info_path <- args[4]
+sequence_info_path <- args[4]
 output_path <- args[5]
 
-unreliable_regions <- readRDS(unreliable_regions_path)
+unreliable_regions <- read.csv(unreliable_regions_path, header=TRUE, check.names=FALSE)
 model <- readRDS(model_path)
-nucleotide_info <- read.csv(nucleotide_info_path, sep="\t", header=TRUE)
+nucleotide_info <- read.csv(sequence_info_path, header=TRUE)
 
 # Convert BAM file.
 rle_data <- convert_bam_to_rle(bam_file = bam_path)
@@ -30,15 +30,15 @@ layout(matrix(c(1,1,2,5,5,6,3,3,4,7,7,8), nrow = 6))
 # Run Model
 prediction_virus <- predict_iimi(
   newdata = newdata,
-  method = "rf",
-  trained_model = trained_rf,
+  method = "xgb",
+  trained_model = model,
   report_virus_level = TRUE
 )
 
 prediction_isolate <- predict_iimi(
   newdata = newdata,
-  method = "rf",
-  trained_model = trained_rf,
+  method = "xgb",
+  trained_model = model,
   report_virus_level = FALSE
 )
 
