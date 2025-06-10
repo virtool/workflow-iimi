@@ -42,10 +42,10 @@ COPY --from=prep /build/bowtie2/* /usr/local/bin/
 COPY --from=prep /build/pigz-2.8/pigz /usr/local/bin/pigz
 COPY --from=prep /build/samtools/bin/samtools /usr/local/bin/samtools
 COPY --from=prep /build/skewer /usr/local/bin/
-RUN curl -sSL https://install.python-poetry.org | python3 - --version 1.8.3
+RUN curl -sSL https://install.python-poetry.org | python3 -
 ENV PATH="/root/.local/bin:$PATH"
 COPY poetry.lock pyproject.toml ./
-RUN poetry install --without dev --no-root
+RUN poetry install --without dev
 COPY --from=rbuild /usr/local/lib/R/site-library /usr/local/lib/R/site-library
 COPY run.r utils.py workflow.py VERSION* ./
 RUN poetry install
