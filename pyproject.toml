@@ -1,20 +1,26 @@
-[tool.poetry]
+[project]
 name = "workflow-iimi"
 version = "0.0.0"
 description = ""
-authors = ["Ian Boyes <igboyes@gmail.com>"]
+authors = [
+    {name="Ian Boyes"},
+    {name="Reece Hoffmann"}
+]
 license = "MIT"
+requires-python = ">=3.12.3,<3.13"
+
+[tool.poetry]
+package-mode = false
 
 [tool.poetry.dependencies]
-python = "~3.12"
 biopython = "^1.84"
-virtool-workflow = "^7.1.0"
+virtool-workflow = { git = "https://github.com/virtool/virtool-workflow.git", rev="7.1.4" }
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.2"
 pytest-asyncio = "^0.23.2"
 pytest-mock = "^3.12.0"
-ruff = "^0.4.8"
+ruff = "^0.11.13"
 syrupy = "^4.6.0"
 
 [tool.pytest.ini_options]
