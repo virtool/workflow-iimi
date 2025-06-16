@@ -2647,14 +2647,14 @@ visvalingamwyatt = ">=0.1.4,<0.2.0"
 
 [[package]]
 name = "virtool-workflow"
-version = "7.1.5"
+version = "7.2.0"
 description = "A framework for developing bioinformatics workflows for Virtool."
 optional = false
 python-versions = "<3.13.0,>=3.12.3"
 groups = ["main"]
 files = [
-    {file = "virtool_workflow-7.1.5-py3-none-any.whl", hash = "sha256:69b3c533716e7200e2250de1ea57a0f412f6c25fd13f7f4e0cecb2be865b2efd"},
-    {file = "virtool_workflow-7.1.5.tar.gz", hash = "sha256:092ce465fdeab1ec84db5caeb8cac5627513c825f788b9388711f06577b0bb12"},
+    {file = "virtool_workflow-7.2.0-py3-none-any.whl", hash = "sha256:c8570140f6024999dcb6d991eed87f2765174b114bee272e7859bbddfd8d36bd"},
+    {file = "virtool_workflow-7.2.0.tar.gz", hash = "sha256:81784fe377a75ffa6650f2fd47b1039062199c890bac11a7587ee48f06883e94"},
 ]
 
 [package.dependencies]
