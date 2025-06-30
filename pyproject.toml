@@ -14,7 +14,7 @@ package-mode = false
 
 [tool.poetry.dependencies]
 biopython = "^1.85"
-virtool-workflow = "7.2.1"
+virtool-workflow = "7.2.2"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.4.1"
