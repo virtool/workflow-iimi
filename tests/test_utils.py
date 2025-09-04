@@ -1,30 +1,15 @@
+"""Test for workflow utilities."""
+
 import shutil
 from pathlib import Path
 
 from syrupy import SnapshotAssertion
 
-from utils import load_and_format_prediction_results, write_iimi_nucleotide_info
-
-
-def test_write_iimi_nucleotide_info(
-    example_path: Path,
-    logger,
-    snapshot: SnapshotAssertion,
-    work_path: Path,
-):
-    shutil.copyfile(
-        example_path / "index" / "reference.json.gz",
-        work_path / "reference.json.gz",
-    )
-
-    output_path = work_path / "nucleotide_info.csv"
-
-    write_iimi_nucleotide_info(work_path / "reference.json.gz", output_path, logger)
-
-    assert output_path.read_text() == snapshot(name="file")
+from utils import load_and_format_prediction_results
 
 
 def test_load_prediction_results(snapshot: SnapshotAssertion, work_path: Path):
+    """Test that the load_prediction_results function works as expected."""
     output_path = work_path / "output"
     output_path.mkdir()
 

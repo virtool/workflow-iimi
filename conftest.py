@@ -1,42 +1,17 @@
 from pathlib import Path
 
 import pytest
-import arrow
-from structlog import get_logger
-
-pytest_plugins = [
-    "virtool_workflow.pytest_plugin",
-]
 
 
 @pytest.fixture
-def example_path():
-    return Path(__file__).parent / "example"
+def proc(request: pytest.FixtureRequest) -> int:
+    """An arbitrary `proc` config value for testing."""
+    return int(request.config.getoption("--proc"))
 
 
 @pytest.fixture
-def virtool_workflow_example_path(example_path: Path):
-    return example_path
-
-
-@pytest.fixture
-def logger():
-    return get_logger("workflow")
-
-
-@pytest.fixture
-def proc(request):
-    return request.config.getoption("--proc")
-
-
-@pytest.fixture
-def static_datetime():
-    return arrow.get(2020, 1, 1, 1, 1, 1).naive
-
-
-@pytest.fixture
-def work_path(tmpdir) -> Path:
-    path = Path(tmpdir) / "work"
+def work_path(tmp_path: Path) -> Path:
+    path = tmp_path / "work"
     path.mkdir()
 
     return path
@@ -44,7 +19,8 @@ def work_path(tmpdir) -> Path:
 
 # Add an option to configure a process count.
 # This is used to test the parallelism of the workflow.
-def pytest_addoption(parser):
+def pytest_addoption(parser: pytest.Parser) -> None:
+    """Add command line options for pytest."""
     parser.addoption(
         "--proc",
         action="store",

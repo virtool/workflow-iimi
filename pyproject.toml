@@ -7,28 +7,38 @@ authors = [
     {name="Reece Hoffmann"}
 ]
 license = "MIT"
-requires-python = ">=3.12.3,<3.13"
-
-[tool.poetry]
-package-mode = false
-
-[tool.poetry.dependencies]
-biopython = "^1.85"
-virtool-workflow = "7.2.3"
-
-[tool.poetry.group.dev.dependencies]
-pytest = "^8.4.1"
-pytest-asyncio = "^1.0.0"
-pytest-mock = "^3.14.1"
-ruff = "^0.12.10"
-syrupy = "^4.9.1"
+requires-python = ">=3.13.7,<3.14"
+dependencies = [
+    "biopython>=1.85",
+    "virtool",
+]
+[dependency-groups]
+dev = [
+    "pytest>=8.4.2",
+    "pytest-asyncio>=1.1.0",
+    "pytest-mock>=3.15.0",
+    "ruff>=0.12.12",
+    "syrupy>=4.9.1",
+]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 
 [tool.ruff.lint]
 select = ["ALL"]
+ignore = [
+    "D203",  # Use D211 instead (no blank line before class)
+    "D213",  # Use D212 instead (multi-line summary on first line)
+    "COM812",  # May conflict with formatter
+]
 
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["ANN201", "ANN202", "D205", "PLR0913", "S101", "S106"]
+"tests/__init__.py" = ["D104"]
+"conftest.py" = ["D100"]
+
+[tool.ruff.lint.pydocstyle]
+ignore-decorators = ["pyfixtures.fixture", "pytest.fixture"]
+
+[tool.uv.sources]
+virtool = { git = "https://github.com/virtool/virtool", tag = "31.11.3" }

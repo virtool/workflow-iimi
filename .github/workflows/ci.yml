@@ -1,4 +1,4 @@
-name: ci
+name: CI
 
 on:
   pull_request:
@@ -10,11 +10,51 @@ on:
 
 env:
   IMAGE_NAME: virtool/iimi
+  NODE_VERSION: 22
   REGISTRY: ghcr.io
 
 jobs:
-  release:
-    runs-on: ubuntu-22.04
+  ruff-format:
+    name: Ruff / Format
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install mise
+        uses: jdx/mise-action@v2
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+      - name: Set up Python
+        run: uv python install
+      - name: Install dependencies
+        run: uv sync
+      - name: Check formatting
+        run: uv run ruff format --check .
+
+  ruff-lint:
+    name: Ruff / Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install mise
+        uses: jdx/mise-action@v2
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+      - name: Set up Python
+        run: uv python install
+      - name: Install dependencies
+        run: uv sync
+      - name: Check linting
+        run: uv run ruff check .
+
+  publish-release:
+    name: "Publish / Release"
+    runs-on: ubuntu-latest
     if: github.event_name == 'push'
     outputs:
       git-tag: ${{ steps.release.outputs.git-tag }}
@@ -23,8 +63,6 @@ jobs:
         uses: actions/checkout@v4
       - name: Setup Node.js
         uses: actions/setup-node@v4
-        with:
-          node-version: 20
       - name: Install semantic-release
         run: npm i semantic-release@v23.0.0 @semantic-release/exec@v6.0.3 conventional-changelog-conventionalcommits@7.0.2
       - name: Release
@@ -32,10 +70,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx semantic-release
-  ghcr:
-    runs-on: ubuntu-22.04
+
+  publish-ghcr:
+    name: "Publish / GHCR"
+    runs-on: ubuntu-latest
     if: github.repository_owner == 'Virtool' && github.event_name == 'push' && needs.release.outputs.git-tag != ''
-    needs: [release]
+    needs: [publish-release]
     steps:
       - name: Checkout
         uses: actions/checkout@v4

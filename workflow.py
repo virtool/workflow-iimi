@@ -1,12 +1,15 @@
+"""The Iimi workflow."""
+
 import asyncio
 from operator import itemgetter
 from pathlib import Path
 
 from pyfixtures import fixture
-from virtool_workflow import RunSubprocess, step
-from virtool_workflow.data.analyses import WFAnalysis
-from virtool_workflow.data.ml import WFMLModelRelease
-from virtool_workflow.data.samples import WFSample
+from structlog import get_logger
+from virtool.workflow import RunSubprocess, step
+from virtool.workflow.data.analyses import WFAnalysis
+from virtool.workflow.data.ml import WFMLModelRelease
+from virtool.workflow.data.samples import WFSample
 
 from utils import (
     load_and_format_prediction_results,
@@ -14,7 +17,8 @@ from utils import (
 
 
 @fixture
-async def all_otu_index_path(work_path: Path):
+async def all_otu_index_path(work_path: Path) -> Path:
+    """The path to the all OTU index file."""
     path = work_path / "all_otu_index"
     await asyncio.to_thread(path.mkdir)
 
@@ -23,6 +27,7 @@ async def all_otu_index_path(work_path: Path):
 
 @fixture
 async def output_path(work_path: Path) -> Path:
+    """The path for the IIMI output."""
     path = work_path / "output"
     await asyncio.to_thread(path.mkdir)
 
@@ -33,13 +38,10 @@ async def output_path(work_path: Path) -> Path:
 async def build_all_otu_index(
     all_otu_index_path: Path,
     ml: WFMLModelRelease,
-    logger,
     proc: int,
     run_subprocess: RunSubprocess,
-):
-    """Map reads against all OTU sequences in the configured index."""
-    logger.info("creating bowtie2 mapping index")
-
+) -> None:
+    """Build a mapping index for all OTU sequences."""
     await run_subprocess(
         [
             "bowtie2-build",
@@ -59,7 +61,8 @@ async def map_all_otus(
     run_subprocess: RunSubprocess,
     sample: WFSample,
     work_path: Path,
-):
+) -> None:
+    """Map reads against all OTU sequences."""
     sam_path = work_path / "mapped.sam"
 
     await run_subprocess(
@@ -92,15 +95,16 @@ async def map_all_otus(
 @step
 async def predict(
     analysis: WFAnalysis,
-    logger,
     ml: WFMLModelRelease,
     run_subprocess: RunSubprocess,
     output_path: Path,
     work_path: Path,
-):
+) -> None:
     """Run prediction using Iimi."""
+    logger = get_logger("rscript")
 
-    async def handler(line: bytes):
+    async def handler(line: bytes) -> None:
+        """Handle and log the R process stdout."""
         logger.info("stdout", line=line.decode())
 
     logger.info("running rscript")
