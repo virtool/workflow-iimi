@@ -1,15 +1,14 @@
+"""Workflow-adjacent utilities for Iimi."""
+
 import csv
 import gzip
 import json
-import tarfile
 from collections import defaultdict
 from pathlib import Path
 
 from pydantic import BaseModel
-from virtool_workflow.analysis.fastqc import NucleotidePoint
 
-
-
+type UntrustworthyRange = list[tuple[int, int]]
 
 
 class PredictionCoverage(BaseModel):
@@ -17,6 +16,7 @@ class PredictionCoverage(BaseModel):
 
     lengths: list[int]
     values: list[int]
+
 
 class PredictionRaw(BaseModel):
     """A sequence-level prediction result.
@@ -31,17 +31,15 @@ class PredictionRaw(BaseModel):
     probability: float
     untrustworthy_ranges: list[tuple[int, int]]
 
+
 class PredictionSequence(PredictionRaw):
-    """A sequence that was hit during map and either accepted or rejected as being present
-    by IIMI.
-    """
+    """A sequence-level prediction result with the sequence length."""
+
     length: int
 
 
 class PredictionIsolate(BaseModel):
-    """A virus isolate under which member sequences are organized. Isolates are nested
-    below viruses.
-    """
+    """A virus isolate that contains mapped sequences."""
 
     id: str
     sequences: list[PredictionSequence]
@@ -50,47 +48,13 @@ class PredictionIsolate(BaseModel):
 
 
 class PredictionOTU(BaseModel):
-    """A virus that was hit during mapping and either accepted or rejected by IIMI as being
-    present.
-    """
+    """A virus that contains isolates with mapped sequences."""
 
     id: str
     abbreviation: str
     isolates: list[PredictionIsolate]
     name: str
     result: bool
-
-
-def calculate_nucleotide_composition(sequence: str) -> NucleotidePoint:
-    """Calculate the nucleotide composition of the given sequence that contains
-    the characters A, T, G, and C.
-
-    Return the nucleotide composition as a ``NucleotidePoint`` object.
-
-    :param sequence: the sequence to calculate the nucleotide composition of
-    :return: the nucleotide composition
-    """
-    a = 0
-    t = 0
-    g = 0
-    c = 0
-
-    for char in sequence:
-        match char:
-            case "A" | "a":
-                a += 1
-            case "T" | "t":
-                t += 1
-            case "G" | "g":
-                g += 1
-            case "C" | "c":
-                c += 1
-
-    total = a + t + g + c
-
-    a, t, g, c = map(lambda x: round(x / total, 6), (a, t, g, c))
-
-    return NucleotidePoint(g=g, a=a, t=t, c=c)
 
 
 def load_coverage(path: Path) -> dict[str, PredictionCoverage]:
@@ -105,20 +69,20 @@ def load_coverage(path: Path) -> dict[str, PredictionCoverage]:
     """
     coverage = {}
 
-    with open(path) as f:
+    with path.open() as f:
         reader = csv.reader(f, delimiter=",")
         next(reader)
 
         for sequence_id, lengths, values in reader:
             coverage[sequence_id] = PredictionCoverage(
-                lengths=[int(l) for l in lengths.split(",")],
-                values=[int(v) for v in values.split(",")],
+                lengths=[int(length) for length in lengths.split(",")],
+                values=[int(value) for value in values.split(",")],
             )
 
     return coverage
 
 
-def load_untrustworthy_ranges(path: Path) -> dict[str, list[tuple[int, int]]]:
+def load_untrustworthy_ranges(path: Path) -> dict[str, UntrustworthyRange]:
     """Load IIMI untrustworthy ranges from the given path.
 
     Untrustworthy ranges have been previously identified using a mappability profile
@@ -131,20 +95,24 @@ def load_untrustworthy_ranges(path: Path) -> dict[str, list[tuple[int, int]]]:
     :return: a dictionary of untrustworthy ranges
 
     """
-    untrustworthy_ranges = {}
+    untrustworthy_ranges: dict[str, UntrustworthyRange] = {}
 
-    with open(path) as f:
+    with path.open() as f:
         reader = csv.reader(f, delimiter=",")
 
         next(reader)
 
         for sequence_id, ranges in reader:
-            sequence_id = str(sequence_id)
+            if not ranges:
+                continue
 
-            if ranges:
-                untrustworthy_ranges[sequence_id] = [
-                    tuple(r.split("-")) for r in ranges.split(",")
-                ]
+            ranges_for_sequence_id = []
+
+            for r in ranges.split(","):
+                start, end = r.split("-")
+                ranges_for_sequence_id.append((int(start), int(end)))
+
+            untrustworthy_ranges[sequence_id] = ranges_for_sequence_id
 
     return untrustworthy_ranges
 
@@ -175,7 +143,7 @@ def load_and_format_prediction_results(
 
     sequence_ids_by_reps = defaultdict(set)
 
-    with open(reps_by_sequence_path) as f:
+    with reps_by_sequence_path.open() as f:
         reader = csv.reader(f, delimiter=",")
         next(reader)
 
@@ -185,11 +153,11 @@ def load_and_format_prediction_results(
 
     predictions_by_seq_id: dict[str, PredictionRaw] = {}
 
-    with open(output_path / "prediction_sequence.csv") as f:
+    with (output_path / "prediction_sequence.csv").open() as f:
         reader = csv.reader(f, delimiter=",")
         next(reader)
 
-        for _, otu_id, isolate_id, rep_sequence_id, prediction, probability in reader:
+        for _, _, _, rep_sequence_id, prediction, probability in reader:
             prediction_raw = PredictionRaw(
                 id=rep_sequence_id,
                 coverage=coverage[rep_sequence_id],
@@ -222,7 +190,7 @@ def load_and_format_prediction_results(
 
             prediction_isolate = PredictionIsolate(
                 id=isolate_id,
-                sequences=[                ],
+                sequences=[],
                 source_name=isolate["source_name"],
                 source_type=isolate["source_type"],
             )
@@ -253,8 +221,8 @@ def load_and_format_prediction_results(
                         length=len(sequence["sequence"]),
                         probability=prediction.probability,
                         result=prediction.result,
-                        untrustworthy_ranges=prediction.untrustworthy_ranges
-                    )
+                        untrustworthy_ranges=prediction.untrustworthy_ranges,
+                    ),
                 )
 
             if had_prediction:
@@ -274,11 +242,8 @@ def load_and_format_prediction_results(
     return result
 
 
-def write_all_otu_fasta(reference_json_path: Path, output_path: Path):
-    """Write a FASTA file containing all OTU sequences from the provided
-    reference.json.gz file.
-
-    FASTA records use sequence IDs as headers.
+def write_all_otu_fasta(reference_json_path: Path, output_path: Path) -> None:
+    """Write a FASTA file containing all sequences from the provided reference.
 
     :param reference_json_path: the path to the reference.json.gz file
     :param output_path: the path to write the FASTA file to
@@ -287,79 +252,10 @@ def write_all_otu_fasta(reference_json_path: Path, output_path: Path):
     with gzip.open(reference_json_path, "rt") as f:
         data = json.load(f)
 
-        with open(output_path, "w") as f:
-            for otu in data["otus"]:
-                for isolate in otu["isolates"]:
-                    for sequence in isolate["sequences"]:
-                        f.write(f">{sequence['_id']}\n{sequence['sequence']}\n")
-
-
-def write_iimi_nucleotide_info(reference_json_path: Path, output_path: Path, logger):
-    """Write the IIMI nucleotide information for each sequence to a CSV file.
-
-    IIMI needs the following ordered columns to be present in the CSV file:
-    * virus name
-    * iso_id
-    * seg_id
-    * A_percent
-    * T_percent
-    * G_percent
-    * GC_percent
-    * seg_len
-
-    :param reference_json_path:
-    :param output_path:
-    :return:
-    """
-    with gzip.open(reference_json_path, "r") as f_in, open(output_path, "w") as f_out:
-        data = json.load(f_in)
-
-        f_out.write(
-            "\t".join(
-                [
-                    "virus name",
-                    "iso_id",
-                    "seg_id",
-                    "A_percent",
-                    "T_percent",
-                    "G_percent",
-                    "GC_percent",
-                    "seg_len",
-                ],
-            ),
-        )
-
-        sequence_count = len(
-            [s for v in data["otus"] for i in v["isolates"] for s in i["sequences"]],
-        )
-
-        logger.info(f"Writing nucleotide info for {sequence_count} sequences")
-
+    with output_path.open("w") as f:
         for otu in data["otus"]:
             for isolate in otu["isolates"]:
-                for sequence in isolate["sequences"]:
-                    nucleotide_composition = calculate_nucleotide_composition(
-                        sequence["sequence"],
-                    )
-
-                    f_out.write(
-                        "\n"
-                        + "\t".join(
-                            str(x)
-                            for x in [
-                                otu["_id"],
-                                isolate["id"],
-                                sequence["_id"],
-                                nucleotide_composition.a,
-                                nucleotide_composition.t,
-                                nucleotide_composition.g,
-                                nucleotide_composition.c + nucleotide_composition.g,
-                                len(sequence["sequence"]),
-                            ]
-                        ),
-                    )
-
-
-def untar(path: Path, target_path: Path):
-    with tarfile.open(path, "r:gz") as tar:
-        tar.extractall(target_path)
+                f.writelines(
+                    f">{sequence['_id']}\n{sequence['sequence']}\n"
+                    for sequence in isolate["sequences"]
+                )
