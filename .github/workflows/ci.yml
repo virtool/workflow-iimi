@@ -106,7 +106,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ needs.release.outputs.git-tag }}
+          ref: ${{ needs.publish-release.outputs.git-tag }}
       - name: Login to Registry
         uses: docker/login-action@v3
         with:
