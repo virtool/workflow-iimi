@@ -88,7 +88,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
       - name: Install semantic-release
-        run: npm i semantic-release@v24.27 @semantic-release/exec@v7.1.0 conventional-changelog-conventionalcommits@9.1.0
+        run: npm i semantic-release@v24.2.7 @semantic-release/exec@v7.1.0 conventional-changelog-conventionalcommits@9.1.0
       - name: Release
         id: release
         env:
