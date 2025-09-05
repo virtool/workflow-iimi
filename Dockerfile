@@ -1,11 +1,11 @@
 FROM python:3.13-bookworm AS rbuild
 WORKDIR /build
 RUN apt-get update && apt-get install -y libdeflate0 r-base r-cran-littler
-RUN R -e "install.packages('BiocManager')"
-RUN R -e "BiocManager::install()"
-RUN R -e "BiocManager::install(c('Biostrings', 'Rsamtools', 'GenomicAlignments'))"
-RUN R -e "install.packages(c('data.table', 'dplyr', 'mltools', 'randomForest', 'xgboost', 'knitr', 'remotes', 'MTPS', 'R.utils'))"
-RUN R -e "remotes::install_github('virtool/iimi', ref='1bfac4d429a72e01a6899a288cb6d6a511fb303c')"
+RUN R -e "install.packages('BiocManager')" && \
+    R -e "BiocManager::install()" && \
+    R -e "BiocManager::install(c('Biostrings', 'Rsamtools', 'GenomicAlignments'))" && \
+    R -e "install.packages(c('data.table', 'dplyr', 'mltools', 'randomForest', 'xgboost', 'knitr', 'remotes', 'MTPS', 'R.utils', 'caret'))" && \
+    R -e "remotes::install_github('virtool/iimi', ref='0.1.0')"
 
 FROM python:3.13-bookworm AS deps
 WORKDIR /app
@@ -39,7 +39,6 @@ COPY uv.lock pyproject.toml ./
 COPY README.md ./
 RUN uv sync
 COPY --from=rbuild /usr/local/lib/R/site-library /usr/local/lib/R/site-library
-COPY conftest.py ./
 COPY tests ./tests
 COPY example ./example
-COPY run.r utils.py workflow.py VERSION* ./
+COPY conftest.py run.r utils.py VERSION* workflow.py ./

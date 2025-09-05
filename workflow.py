@@ -111,14 +111,17 @@ async def predict(
 
     await run_subprocess(
         [
-            "Rscript",
-            "./run.r",
-            work_path / "mapped.bam",
-            ml.path / "unreliable_regions.csv",
-            ml.path / "trained_xgb.rds",
-            ml.path / "sequence_info.csv",
-            output_path,
-            "--verbose",
+            str(c)
+            for c in [
+                "Rscript",
+                "./run.r",
+                work_path / "mapped.bam",
+                ml.path / "unreliable_regions.csv",
+                ml.path / "trained_xgb.rds",
+                ml.path / "sequence_info.csv",
+                output_path,
+                "--verbose",
+            ]
         ],
         stdout_handler=handler,
     )
