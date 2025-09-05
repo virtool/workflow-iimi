@@ -8,6 +8,9 @@ on:
     branches:
       - "main"
 
+permissions:
+  contents: read
+
 env:
   IMAGE_NAME: virtool/iimi
   NODE_VERSION: 22
@@ -58,6 +61,9 @@ jobs:
     if: github.event_name == 'push'
     outputs:
       git-tag: ${{ steps.release.outputs.git-tag }}
+    permissions:
+      contents: write
+      issues: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -76,6 +82,8 @@ jobs:
     runs-on: ubuntu-latest
     if: github.repository_owner == 'Virtool' && github.event_name == 'push' && needs.release.outputs.git-tag != ''
     needs: [publish-release]
+    permissions:
+      packages: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
