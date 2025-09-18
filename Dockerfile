@@ -24,7 +24,8 @@ RUN uv sync
 FROM deps AS base
 WORKDIR /app
 RUN apt-get update && apt-get install -y libdeflate0 r-base r-cran-littler
-ENV PATH="/app/.venv/bin:/root/.local/bin:${PATH}"
+ENV VIRTUAL_ENV=/app/.venv \
+    PATH="/app/.venv/bin:/root/.local/bin:${PATH}"
 COPY --from=uv /app/.venv /app/.venv
 COPY --from=rbuild /usr/local/lib/R/site-library /usr/local/lib/R/site-library
 COPY run.r utils.py workflow.py VERSION* ./
