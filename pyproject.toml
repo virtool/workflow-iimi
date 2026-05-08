@@ -41,4 +41,4 @@ ignore = [
 ignore-decorators = ["pyfixtures.fixture", "pytest.fixture"]
 
 [tool.uv.sources]
-virtool = { git = "https://github.com/virtool/virtool", tag = "36.25.2" }
+virtool = { git = "https://github.com/virtool/virtool", tag = "36.26.0" }

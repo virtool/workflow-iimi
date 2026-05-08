@@ -1110,7 +1110,7 @@ wheels = [
 [[package]]
 name = "virtool"
 version = "0.0.0"
-source = { git = "https://github.com/virtool/virtool?tag=36.25.2#5d78b621422bf1be732af354df97444af525d60a" }
+source = { git = "https://github.com/virtool/virtool?tag=36.26.0#d996b6d90edd1dd40261d50c1e3ca514eb67b54c" }
 dependencies = [
     { name = "aiofiles" },
     { name = "aiohttp", extra = ["speedups"] },
@@ -1175,7 +1175,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "biopython", specifier = ">=1.85" },
-    { name = "virtool", git = "https://github.com/virtool/virtool?tag=36.25.2" },
+    { name = "virtool", git = "https://github.com/virtool/virtool?tag=36.26.0" },
 ]
 
 [package.metadata.requires-dev]
