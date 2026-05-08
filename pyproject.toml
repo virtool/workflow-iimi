@@ -9,7 +9,7 @@ authors = [
 license = "MIT"
 requires-python = ">=3.13.7,<3.14"
 dependencies = [
-    "biopython>=1.85",
+    "biopython>=1.87",
     "virtool",
 ]
 [dependency-groups]
